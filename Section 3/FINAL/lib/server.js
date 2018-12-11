@@ -13,10 +13,6 @@
  var handlers = require('./handlers');
  var helpers = require('./helpers');
  var path = require('path');
- var util = require('util');
- var debug = util.debuglog('server');
-
-
 // Instantiate the server module object
 var server = {};
 
@@ -63,8 +59,7 @@ server.unifiedServer = function(req,res){
        buffer += decoder.end();
 
        // Check the router for a matching path for a handler. If one is not found, use the notFound handler instead.
-       var chosenHandler = typeof(server.router[trimmedPath]) !== 'undefined' ? server.router[trimmedPath] : handlers.notFound;
-
+       var chosenHandler = typeof(server.router[trimmedPath]) !== 'undefined' ? server.router[trimmedPath] : handlers.notFound;    
        // Construct the data object to send to the handler
        var data = {
          'trimmedPath' : trimmedPath,
@@ -75,29 +70,13 @@ server.unifiedServer = function(req,res){
        };
 
        // Route the request to the handler specified in the router
-       chosenHandler(data,function(statusCode,payload){
-
-         // Use the status code returned from the handler, or set the default status code to 200
-         statusCode = typeof(statusCode) == 'number' ? statusCode : 200;
-
-         // Use the payload returned from the handler, or set the default payload to an empty object
-         payload = typeof(payload) == 'object'? payload : {};
-
-         // Convert the payload to a string
-         var payloadString = JSON.stringify(payload);
-
-         // Return the response
-         res.setHeader('Content-Type', 'application/json');
-         res.writeHead(statusCode);
-         res.end(payloadString);
-
-         // If the response is 200, print green, otherwise print red
-         if(statusCode == 200){
-           debug('\x1b[32m%s\x1b[0m',method.toUpperCase()+' /'+trimmedPath+' '+statusCode);
-         } else {
-           debug('\x1b[31m%s\x1b[0m',method.toUpperCase()+' /'+trimmedPath+' '+statusCode);
-         }
-       });
+      chosenHandler(data)
+      .then(({statusCode, payload})=>{             
+             helpers.sendRequestResponse(statusCode, payload, res,method, trimmedPath)
+      })
+      .catch(({statusCode, payload})=>{
+        helpers.sendRequestResponse(statusCode, payload, res,method, trimmedPath)
+      })
 
    });
  };

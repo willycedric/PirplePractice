@@ -7,7 +7,7 @@
 var fs = require('fs');
 var path = require('path');
 var helpers = require('./helpers');
-
+//var Promise = require('Promise')
 // Container for module (to be exported)
 var lib = {};
 
@@ -43,6 +43,35 @@ lib.create = function(dir,file,data,callback){
 
 };
 
+//Open the file for Writing - Promise 
+lib.createPromisify = (dir, file, data)=>{  
+  return new Promise((resolve, reject)=>{
+    //Open file for writing 
+    fs.open(lib.baseDir+dir+'/'+file+'.json','wx', (err, fileDescriptor)=>{
+      if(!err && fileDescriptor){
+        //Convert data to string
+        const stringData = JSON.stringify(data)
+        //Write to file and close it
+        fs.writeFile(fileDescriptor, stringData, (err)=>{
+          if(!err){
+            fs.close(fileDescriptor, (err)=>{
+              if(!err){
+                resolve(true)
+              }else{
+                reject('Error closing new file.')
+              }
+            })
+          }else{
+            reject('Error writing to new file')
+          }
+        })
+      }else{
+        reject('Could not create new file, it may already exist')
+      }
+    })
+  })
+}
+
 // Read data from a file
 lib.read = function(dir,file,callback){
   fs.readFile(lib.baseDir+dir+'/'+file+'.json', 'utf8', function(err,data){
@@ -55,6 +84,20 @@ lib.read = function(dir,file,callback){
   });
 };
 
+//Read data from file - Promise
+lib.readPromisify = (dir, file)=>{
+  return new Promise((resolve, reject)=>{
+    fs.readFile(lib.baseDir+dir+'/'+file+'.json', 'utf8', (err,data)=>{
+      if(!err && data){
+        var parsedData = helpers.parseJsonToObject(data)
+        resolve(parsedData)
+      }else{        
+        reject(err)
+      }
+    })
+  })
+}
+
 // Update data in a file
 lib.update = function(dir,file,data,callback){
 
@@ -65,7 +108,7 @@ lib.update = function(dir,file,data,callback){
       var stringData = JSON.stringify(data);
 
       // Truncate the file
-      fs.truncate(fileDescriptor,function(err){
+      fs.ftruncate(fileDescriptor,function(err){
         if(!err){
           // Write to file and close it
           fs.writeFile(fileDescriptor, stringData,function(err){
@@ -92,6 +135,36 @@ lib.update = function(dir,file,data,callback){
 
 };
 
+// Update data in a file - Promise
+lib.updatePromisify = (dir, file, data)=>{
+  return new Promise((resolve, reject)=>{
+    fs.open(lib.baseDir+dir+'/'+file+'.json','r+',(err, fileDescriptor)=>{
+      if(!err && fileDescriptor){
+        fs.ftruncate(fileDescriptor, (err)=>{
+          if(!err){
+            fs.writeFile(fileDescriptor, JSON.stringify(data),(err)=>{
+              if(!err){
+                fs.close(fileDescriptor, (err)=>{
+                  if(!err){
+                    resolve(false)
+                  }else{
+                    reject('Error while closing file after update')
+                  }
+                })
+              }else{
+                reject('Failed to update the file.')
+              }
+            })
+          }else{
+            reject('Error while truncating file.')
+          }
+        })
+      }else{
+        reject('File to open the file.')
+      }
+    })
+  })
+}
 // Delete a file
 lib.delete = function(dir,file,callback){
 
@@ -101,6 +174,16 @@ lib.delete = function(dir,file,callback){
   });
 
 };
+
+
+//Delete a file - Promisify
+lib.deletePromisify = (dir, file)=>{
+  return new Promise((resolve, reject)=>{
+    fs.unlink(lib.baseDir+dir+'/'+file+'.json', (err)=>{
+      resolve(err)
+    })
+  })
+}
 
 // List all the items in a directory
 lib.list = function(dir,callback){

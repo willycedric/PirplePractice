@@ -8,7 +8,8 @@ var config = require('./config');
 var crypto = require('crypto');
 var https = require('https');
 var querystring = require('querystring');
-
+var util = require('util');
+var debug = util.debuglog('server');
 // Container for all the helpers
 var helpers = {};
 
@@ -109,6 +110,30 @@ helpers.sendTwilioSms = function(phone,msg,callback){
     callback('Given parameters were missing or invalid');
   }
 };
+
+helpers.sendRequestResponse = (statusCode, payload,res, method, trimmedPath)=>{
+   // Use the status code returned from the handler, or set the default status code to 200
+   statusCode = typeof(statusCode) == 'number' ? statusCode : 200;
+
+   // Use the payload returned from the handler, or set the default payload to an empty object
+   payload = typeof(payload) == 'object'? payload : {};
+
+   // Convert the payload to a string
+   var payloadString = JSON.stringify(payload);
+
+   // Return the response
+   res.setHeader('Content-Type', 'application/json');
+   res.writeHead(statusCode);
+   res.end(payloadString);
+
+   // If the response is 200, print green, otherwise print red
+   if(statusCode == 200){
+     debug('\x1b[32m%s\x1b[0m',method.toUpperCase()+' /'+trimmedPath+' '+statusCode);
+   } else {
+     debug('\x1b[31m%s\x1b[0m',method.toUpperCase()+' /'+trimmedPath+' '+statusCode);
+   }
+
+}
 
 
 // Export the module
