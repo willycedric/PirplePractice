@@ -80,7 +80,8 @@ workers.performCheck = function(originalCheckData){
 
   // Mark that the outcome has not been sent yet
   var outcomeSent = false;
-
+  //Handle url with specific port or default to 80
+  var port = originalCheckData.url.split(':').length>0?originalCheckData.url.split(':')[1]:80;
   // Parse the hostname and path out of the originalCheckData
   var parsedUrl = url.parse(originalCheckData.protocol+'://'+originalCheckData.url, true);
   var hostName = parsedUrl.hostname;
@@ -91,10 +92,10 @@ workers.performCheck = function(originalCheckData){
     'protocol' : originalCheckData.protocol+':',
     'hostname' : hostName,
     'method' : originalCheckData.method.toUpperCase(),
-    'path' : path,
+    path,
+    port,
     'timeout' : originalCheckData.timeoutSeconds * 1000
   };
-
   // Instantiate the request object (using either the http or https module)
   var _moduleToUse = originalCheckData.protocol == 'http' ? http : https;
   var req = _moduleToUse.request(requestDetails,function(res){
@@ -136,10 +137,8 @@ workers.performCheck = function(originalCheckData){
 // Process the check outcome, update the check data as needed, trigger an alert if needed
 // Special logic for accomodating a check that has never been tested before (don't alert on that one)
 workers.processCheckOutcome = function(originalCheckData,checkOutcome){
-
   // Decide if the check is considered up or down
   var state = !checkOutcome.error && checkOutcome.responseCode && originalCheckData.successCodes.indexOf(checkOutcome.responseCode) > -1 ? 'up' : 'down';
-
   // Decide if an alert is warranted
   var alertWarranted = originalCheckData.lastChecked && originalCheckData.state !== state ? true : false;
 

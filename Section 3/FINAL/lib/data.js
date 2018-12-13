@@ -100,7 +100,6 @@ lib.readPromisify = (dir, file)=>{
 
 // Update data in a file
 lib.update = function(dir,file,data,callback){
-
   // Open the file for writing
   fs.open(lib.baseDir+dir+'/'+file+'.json', 'r+', function(err, fileDescriptor){
     if(!err && fileDescriptor){
